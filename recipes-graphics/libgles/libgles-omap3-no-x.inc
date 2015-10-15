@@ -27,8 +27,9 @@ RCONFLICTS_${PN}-dbg = "libegl-dbg libgles1-dbg libgles2-dbg"
 
 SRC_URI = "http://software-dl.ti.com/dsps/dsps_public_sw/sdo_sb/targetcontent/gfxsdk/${SGXPV}/exports/${BINFILE} \
 		   file://cputype \
-		   file://rc.pvr \
 		   file://99-bufferclass.rules  \
+		   file://pvr.service  \
+		   file://pvrsrvinit  \
 "
 
 S = "${WORKDIR}/OMAP35x_Graphics_SDK_${SGXPV}"
@@ -147,11 +148,10 @@ do_install () {
 	cp -pPr ${S}/include/pvr2d/*.h ${D}${includedir}
 	cp -pPr ${S}/include/OGLES2/* ${D}${includedir}/
 	cp -pPr ${S}/include/wsegl/*.h ${D}${includedir}/
-	
-	install -d ${D}${sysconfdir}/init.d/
-	cp -pP ${WORKDIR}/rc.pvr ${D}${sysconfdir}/init.d/pvr-init
-	chmod +x ${D}${sysconfdir}/init.d/pvr-init
 
+	install -d ${D}/${base_libdir}/systemd/system
+	install -m 0644 ${WORKDIR}/pvr.service ${D}/${base_libdir}/systemd/system/
+	
 	install -d ${D}${sysconfdir}
 	echo "[default]" > ${D}${sysconfdir}/powervr.ini
 	echo "WindowSystem=${LIBGLESWINDOWSYSTEM}" >> ${D}${sysconfdir}/powervr.ini
@@ -161,6 +161,7 @@ do_install () {
 	install -d ${D}${bindir}/SGX/trainingcourses/Raw 2>/dev/null || true
 	install -m 0755 ${S}/trainingcourses/raw/* ${D}${bindir}/SGX/trainingcourses/Raw/ 2>/dev/null || true
 
+	install -m 0755 ${WORKDIR}/pvrsrvinit ${D}${bindir}/
 
 	# Delete objects and linker scripts hidden between the headers
 	find ${D} -name "*.o" -delete
@@ -184,7 +185,7 @@ FILES_${PN}-linuxfbwsegl = "${libdir}/libpvrPVR2D_LINUXFBWSEGL.so.*"
 
 CONFFILES_${PN} = "${sysconfdir}/powervr.ini"
 
-FILES_${PN} = "${sysconfdir} ${libdir}/*.so* ${bindir}/${PVR_INIT} ${bindir}/cputype ${bindir}/*"
+FILES_${PN} = "${sysconfdir} ${libdir}/*.so* ${bindir}/${PVR_INIT} ${bindir}/cputype ${bindir}/* ${base_libdir}/systemd/system/pvr.service"
 
 FILES_${PN}-tests = "${bindir}/*test*"
 FILES_${PN}-dbg = "${libdir}/.debug/* ${bindir}/.debug/* \
@@ -216,10 +217,9 @@ INSANE_SKIP_${PN}-tests = "ldflags"
 FILES_${PN} += "${libdir}/*.so "
 FILES_${PN}-dev = "${includedir}"
 
-inherit update-rc.d
+inherit systemd
 
-INITSCRIPT_NAME = "pvr-init"
-INITSCRIPT_PARAMS = "start 30 5 2 . stop 40 0 1 6 ."
+SYSTEMD_SERVICE_${PN} = "pvr.service"
 
 # Append to update-rc.d postinst
 pkg_postinst_${PN}_append() {

@@ -38,7 +38,8 @@ BINFILE := "${BINFILE_HARDFP}"
 
 SRC_URI = "http://software-dl.ti.com/dsps/dsps_public_sw/gfxsdk/${SGXPV}/exports/${BINFILE} \
            file://cputype \
-           file://rc.pvr \
+           file://pvr.service \
+           file://pvrsrvinit \
            file://99-bufferclass.rules  \
 "
 
